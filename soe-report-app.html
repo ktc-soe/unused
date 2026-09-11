@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOE Field Report · AGDI Kibidula</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --green:#163A2B;      /* AGDI deep forest green */
+    --green-2:#1f4f3a;
+    --gold:#C29B3B;       /* AGDI harvest gold */
+    --gold-soft:#e7d3a1;
+    --paper:#f6f5ef;
+    --card:#ffffff;
+    --tint:#eef2ec;
+    --ink:#1b241e;
+    --muted:#5f6b62;
+    --line:#dfe4da;
+    --ok:#2f7d4f;
+    --err:#b23b3b;
+    --radius:12px;
+    --shadow:0 1px 2px rgba(22,58,43,.06),0 6px 20px rgba(22,58,43,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper);color:var(--ink);line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--green)}
+  /* ---------- top bar ---------- */
+  header.topbar{
+    position:sticky;top:0;z-index:50;
+    background:var(--green);color:#fff;
+    border-bottom:3px solid var(--gold);
+  }
+  .topbar-inner{
+    max-width:960px;margin:0 auto;padding:.7rem 1rem;
+    display:flex;align-items:center;gap:.75rem;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:.65rem;min-width:0}
+  .brand .mark{
+    width:34px;height:34px;border-radius:8px;flex:0 0 auto;
+    background:var(--gold);color:var(--green);
+    display:grid;place-items:center;font-weight:800;font-size:.95rem;letter-spacing:-.02em;
+  }
+  .brand .txt{min-width:0}
+  .brand .txt b{display:block;font-size:.98rem;line-height:1.1;font-weight:700}
+  .brand .txt span{display:block;font-size:.72rem;opacity:.8}
+  .modebtn{
+    background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);
+    padding:.4rem .7rem;border-radius:8px;font-size:.8rem;cursor:pointer;white-space:nowrap;
+  }
+  .modebtn:hover{background:rgba(255,255,255,.1)}
+  /* ---------- layout ---------- */
+  main{max-width:960px;margin:0 auto;padding:1rem 1rem 4rem}
+  .view{display:none}
+  .view.active{display:block}
+  /* ---------- form hero ---------- */
+  .hero{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:1.1rem 1.15rem;margin:.4rem 0 1rem;
+  }
+  .hero h1{margin:0 0 .2rem;font-size:1.35rem;color:var(--green);letter-spacing:-.01em}
+  .hero p{margin:0;color:var(--muted);font-size:.88rem}
+  .progresswrap{margin-top:.9rem}
+  .progressbar{height:8px;background:var(--tint);border-radius:99px;overflow:hidden}
+  .progressbar>i{display:block;height:100%;width:0;background:var(--gold);transition:width .25s}
+  .progresslabel{font-size:.74rem;color:var(--muted);margin-top:.35rem}
+  /* ---------- sections ---------- */
+  .section{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-bottom:.85rem;overflow:hidden;
+  }
+  .section>summary{
+    list-style:none;cursor:pointer;padding:.9rem 1.05rem;
+    display:flex;align-items:center;gap:.7rem;font-weight:700;color:var(--green);
+    background:linear-gradient(0deg,var(--card),var(--card));
+  }
+  .section>summary::-webkit-details-marker{display:none}
+  .section>summary .no{
+    width:26px;height:26px;flex:0 0 auto;border-radius:7px;background:var(--tint);
+    color:var(--green);display:grid;place-items:center;font-size:.82rem;font-weight:800;
+  }
+  .section>summary .lbl{flex:1;min-width:0}
+  .section>summary .lbl small{display:block;font-weight:400;color:var(--muted);font-size:.74rem}
+  .section>summary .chev{transition:transform .2s;color:var(--muted)}
+  .section[open]>summary .chev{transform:rotate(90deg)}
+  .section[open]>summary{border-bottom:1px solid var(--line)}
+  .section .body{padding:.4rem 1.05rem 1.05rem}
+  /* ---------- fields ---------- */
+  .field{padding:.6rem 0;border-bottom:1px dashed var(--line)}
+  .field:last-child{border-bottom:none}
+  .field label{display:block;font-size:.86rem;margin-bottom:.35rem;font-weight:600}
+  .field label small{display:block;font-weight:400;color:var(--muted);font-size:.76rem;margin-top:1px}
+  .field.sub{padding-left:.85rem;border-left:3px solid var(--tint);margin-left:.15rem}
+  .field.sub label{font-weight:500;font-size:.82rem}
+  input,select,textarea{
+    width:100%;font:inherit;color:var(--ink);background:#fff;
+    border:1px solid var(--line);border-radius:9px;padding:.55rem .65rem;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--gold-soft);border-color:var(--gold)}
+  input[type=number]{max-width:180px}
+  textarea{min-height:66px;resize:vertical}
+  .req::after{content:" *";color:var(--gold)}
+  .checks{display:flex;flex-wrap:wrap;gap:.4rem}
+  .checks label{
+    display:inline-flex;align-items:center;gap:.4rem;margin:0;font-weight:500;font-size:.82rem;
+    border:1px solid var(--line);border-radius:99px;padding:.35rem .7rem;cursor:pointer;background:#fff;
+  }
+  .checks label:has(input:checked){background:var(--tint);border-color:var(--gold);color:var(--green)}
+  .checks input{width:auto}
+  .grp-note{font-size:.78rem;color:var(--muted);margin:.1rem 0 .3rem}
+  /* ---------- photos ---------- */
+  .photo-drop{
+    border:2px dashed var(--gold-soft);border-radius:12px;background:#fffdf6;
+    padding:1rem;text-align:center;cursor:pointer;color:var(--muted);font-size:.86rem;
+  }
+  .photo-drop:hover{border-color:var(--gold);background:#fff9ec}
+  .photo-drop b{color:var(--green);display:block;margin-bottom:.15rem}
+  .photo-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.7rem}
+  .thumb{position:relative;width:96px;height:96px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .thumb button{
+    position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;
+    border:none;background:rgba(22,58,43,.85);color:#fff;font-size:.8rem;cursor:pointer;line-height:1;
+  }
+  .thumb .busy{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.7);font-size:.7rem;color:var(--green)}
+  /* ---------- submit bar ---------- */
+  .actions{
+    position:sticky;bottom:0;background:linear-gradient(180deg,rgba(246,245,239,0),var(--paper) 32%);
+    padding-top:1rem;margin-top:.5rem;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+    font:inherit;font-weight:700;cursor:pointer;border:none;border-radius:10px;
+    padding:.8rem 1.1rem;
+  }
+  .btn.primary{background:var(--gold);color:var(--green);width:100%;font-size:1rem}
+  .btn.primary:hover{filter:brightness(1.04)}
+  .btn.primary:disabled{opacity:.55;cursor:progress}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--green)}
+  .btn.dark{background:var(--green);color:#fff}
+  .msg{margin-top:.8rem;padding:.7rem .85rem;border-radius:10px;font-size:.88rem;display:none}
+  .msg.show{display:block}
+  .msg.ok{background:#e7f3ec;color:#1c5c37;border:1px solid #bfe0cc}
+  .msg.err{background:#fbe9e9;color:#8f2b2b;border:1px solid #eec3c3}
+  /* ---------- config banner ---------- */
+  .cfgbanner{
+    background:#fff7e6;border:1px solid var(--gold-soft);color:#6b5518;
+    padding:.7rem .85rem;border-radius:10px;font-size:.82rem;margin-bottom:1rem;display:none;
+  }
+  .cfgbanner.show{display:block}
+  .cfgbanner b{color:#5a4712}
+  /* ---------- admin ---------- */
+  .gate{
+    max-width:380px;margin:2.5rem auto;background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:1.4rem;text-align:center;
+  }
+  .gate h2{color:var(--green);margin:.2rem 0 .3rem}
+  .gate p{color:var(--muted);font-size:.85rem;margin:0 0 1rem}
+  .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:.2rem 0 1rem}
+  .toolbar select,.toolbar input{width:auto;min-width:130px}
+  .toolbar .spacer{flex:1}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:.9rem 1rem}
+  .kpi .n{font-size:1.7rem;font-weight:800;color:var(--green);line-height:1}
+  .kpi .l{font-size:.76rem;color:var(--muted);margin-top:.3rem}
+  .kpi.gold{background:var(--green);color:#fff;border-color:var(--green)}
+  .kpi.gold .n{color:var(--gold-soft)}
+  .kpi.gold .l{color:rgba(255,255,255,.85)}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:1rem 1.05rem;margin-bottom:1rem}
+  .panel h3{margin:0 0 .7rem;color:var(--green);font-size:1rem}
+  .chartbox{position:relative;height:300px}
+  .tablewrap{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:.82rem}
+  th,td{border:1px solid var(--line);padding:.45rem .55rem;text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+  thead th{background:var(--green);color:#fff;font-weight:600;border-color:var(--green-2)}
+  tbody tr:nth-child(even){background:var(--tint)}
+  tfoot td{font-weight:800;background:var(--gold-soft)}
+  .empty{text-align:center;color:var(--muted);padding:2.5rem 1rem}
+  .loading{text-align:center;color:var(--muted);padding:2rem}
+  .pill{display:inline-block;font-size:.72rem;background:var(--tint);color:var(--green);
+    border-radius:99px;padding:.15rem .55rem;margin-left:.4rem}
+  footer{max-width:960px;margin:0 auto;padding:1.5rem 1rem;color:var(--muted);font-size:.76rem;text-align:center}
+  @media(max-width:520px){
+    .hero h1{font-size:1.15rem}
+    input[type=number]{max-width:100%}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="mark">SOE</div>
+      <div class="txt">
+        <b>Ripoti ya Uinjilisti · SOE</b>
+        <span>AGDI · Kibidula Training Centre</span>
+      </div>
+    </div>
+    <button class="modebtn" id="modeToggle">Admin</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ FORM VIEW ============ -->
+  <section id="formView" class="view active">
+    <div class="cfgbanner" id="cfgBanner">
+      <b>Not connected yet.</b> Set your Google Apps Script Web App URL in the Admin panel (Settings) before submissions can be saved.
+    </div>
+
+    <div class="hero">
+      <h1>Ripoti ya Mwezi ya Mwinjilisti</h1>
+      <p>Monthly Lay Missionary Field Report — jaza sehemu zote zinazokuhusu. Namba zisizohusika acha kama sifuri (0).</p>
+      <div class="progresswrap">
+        <div class="progressbar"><i id="progBar"></i></div>
+        <div class="progresslabel"><span id="progText">0</span> sehemu zimejazwa</div>
+      </div>
+    </div>
+
+    <form id="reportForm" autocomplete="off">
+      <div id="formSections"><!-- sections injected here --></div>
+
+      <div class="actions">
+        <button type="submit" class="btn primary" id="submitBtn">Tuma Ripoti · Submit report</button>
+        <div class="msg" id="formMsg"></div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ ADMIN VIEW ============ -->
+  <section id="adminView" class="view">
+    <!-- gate -->
+    <div class="gate" id="adminGate">
+      <h2>Admin</h2>
+      <p>Ingiza nenosiri la kuona ripoti zote na muhtasari.</p>
+      <input type="password" id="adminPass" placeholder="Passcode" style="margin-bottom:.7rem">
+      <button class="btn dark" style="width:100%" id="adminEnter">Ingia · Enter</button>
+      <div class="msg err" id="gateMsg"></div>
+    </div>
+
+    <!-- dashboard -->
+    <div id="adminDash" style="display:none">
+      <div class="toolbar">
+        <select id="fMonth"><option value="">Miezi yote · All months</option></select>
+        <select id="fRegion"><option value="">Mikoa yote · All regions</option></select>
+        <span class="spacer"></span>
+        <button class="btn ghost" id="refreshBtn">↻ Refresh</button>
+        <button class="btn ghost" id="csvBtn">⬇ CSV</button>
+        <button class="btn ghost" id="settingsBtn">⚙ Settings</button>
+      </div>
+
+      <div id="settingsPanel" class="panel" style="display:none">
+        <h3>Connection settings</h3>
+        <div class="field">
+          <label>Google Apps Script Web App URL
+            <small>Paste the /exec deployment URL. Saved on this device only.</small>
+          </label>
+          <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/…/exec">
+        </div>
+        <button class="btn dark" id="saveUrl">Save URL</button>
+        <span id="urlSaved" style="margin-left:.6rem;color:var(--ok);font-size:.82rem"></span>
+      </div>
+
+      <div id="dashLoading" class="loading">Inapakia ripoti…</div>
+      <div id="dashEmpty" class="empty" style="display:none">Hakuna ripoti bado. No reports submitted yet.</div>
+
+      <div id="dashContent" style="display:none">
+        <div class="kpis" id="kpis"></div>
+
+        <div class="panel">
+          <h3>Washiriki na Ubatizo kwa Mkoa · Participants &amp; baptisms by region</h3>
+          <div class="chartbox"><canvas id="regionChart"></canvas></div>
+        </div>
+
+        <div class="panel">
+          <h3>Muhtasari kwa Mkoa · Summary by region</h3>
+          <div class="tablewrap"><table id="regionTable"></table></div>
+        </div>
+
+        <div class="panel">
+          <h3>Ripoti Zote · All submissions <span class="pill" id="rowCount">0</span></h3>
+          <div class="tablewrap"><table id="rawTable"></table></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  AGDI · Kibidula Training Centre of Evangelism — School of Evangelism (SOE) field reporting.
+</footer>
+
+<script>
+/* ================================================================
+   CONFIG
+   Paste your deployed Apps Script Web App URL here (ends in /exec),
+   or set it in Admin → Settings. Admin passcode is also here.
+   ================================================================ */
+const CONFIG = {
+  SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz1y-zTGqTJ-TooIexZjG55qj0ruiACVEhcOo-WbJ26COiC_yjFz43_MXK2ijp27is2xA/exec",
+  ADMIN_PASSCODE: "kibidula"   // must match ADMIN_PASSCODE in Code.gs
+};
+
+/* ---- safe localStorage (works when hosted; no-op in sandbox) ---- */
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+};
+function scriptUrl(){ return (store.get("soe_url") || CONFIG.SCRIPT_URL || "").trim(); }
+
+/* ================================================================
+   REFERENCE DATA (from the SOE workbook)
+   ================================================================ */
+const REGIONS = ["Ruvuma","Dodoma","Iringa","Njombe","Katavi","Rukwa","Lindi","Zanzibar","Morogoro"];
+
+// missionary -> region (blank = pick manually)
+const MISSIONARIES = [
+  ["Daudi Simzosha","Ruvuma"],["Liston Mtemela","Ruvuma"],["Phenias Zavery Kalinga","Ruvuma"],
+  ["Japheth Joseph Mbunda","Ruvuma"],["Mark Omari Mtepende","Ruvuma"],["Amani Vincent Msabila","Ruvuma"],
+  ["Zabron Awinde","Ruvuma"],["Emelan Msauge",""],["Nicodem Musa Chanai","Dodoma"],["Daud M Kornelio","Dodoma"],
+  ["Samuel Kapufi","Iringa"],["Charles Philipo Kauzeni","Iringa"],["Petro Batista Bugano","Iringa"],
+  ["Pius Vitas Ngonyani","Iringa"],["Dasani Mwisuwa","Iringa"],["Godfrey Fute","Iringa"],
+  ["Godson Sanga","Iringa"],["Lenard Kingungalo","Iringa"],["Kubusho Mmlamka","Njombe"],
+  ["John Mwanisawa","Katavi"],["Johana Kibilo","Katavi"],["Hams Damas Festo","Rukwa"],
+  ["Enoch Credo Sichilima","Rukwa"],["Mebini Mamble","Rukwa"],["Eliakim Julias Mejon",""],
+  ["Bahati John","Lindi"],["Selemani A Selemani","Zanzibar"],["Emmanuel Pharles Biuire","Zanzibar"],
+  ["Emanuela",""],["Jamshid George Mumbila",""],["Peter Mahidi Philipo",""],["Jafali Chrisipini Ndawa",""]
+];
+
+const MEDIA_OPTS = ["Facebook","Twitter/X","WhatsApp","Instagram","Simu / Direct Messages",
+  "Television","Radio","YouTube","PA System","Other / Nyingine"];
+
+const GUIDE_OPTS = ["Biblia","Yachunguzeni","Mwangaza","Tayari Yesu Akuja","Imani za Msingi",
+  "Bibilia Yasema","Mafundisho ya Biblia","Masomo ya Ubatizo","Tujifunze Pamoja","Nyingine / Other","Hakuna / No response"];
+
+/* ================================================================
+   FORM SCHEMA — mirrors the monthly sheet, in row order.
+   Column order written to the Sheet = order of `id`s here.
+   type: num | text | region | missionary | date | media | guide
+   ================================================================ */
+const SCHEMA = [
+  {section:"Taarifa za Jumla · General information", no:1, fields:[
+    {id:"date", row:3, type:"date", req:true, sw:"Tarehe ya Ripoti", en:"Submission date"},
+    {id:"region", type:"region", req:true, sw:"Mkoa", en:"Region"},
+    {id:"missionary", type:"missionary", req:true, sw:"Jina la Mwinjilisti", en:"Lay missionary name"},
+    {id:"q5", row:5, type:"num", sw:"Una jumla ya washiriki wangapi?", en:"Total participants"},
+    {id:"q6", row:6, type:"num", sw:"Walioongezeka mwezi huu wa huduma?", en:"People added this month"},
+    {id:"q7", row:7, type:"num", sw:"Washiriki/waumini uliowafundisha kazi ya ulei?", en:"Trained in lay work"},
+    {id:"q8", row:8, type:"num", sw:"Washiriki/waumini uliowafunza imani ya msingi?", en:"Taught fundamentals of faith"},
+  ]},
+  {section:"Afya · Health ministry", no:2, fields:[
+    {id:"q10", row:10, type:"num", sw:"Masomo ya afya uliyofundisha washiriki (kanisani)?", en:"Health lessons taught to believers"},
+    {id:"q11", row:11, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q12", row:12, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q13", row:13, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q14", row:14, type:"num", sub:true, sw:"Watoto (12 na chini)", en:"Children ≤12"},
+    {id:"q15", row:15, type:"num", sw:"Masomo ya afya nje ya kanisa?", en:"Health lessons taught outside church"},
+    {id:"q16", row:16, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q17", row:17, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q18", row:18, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q19", row:19, type:"num", sub:true, sw:"Watoto (12 na chini)", en:"Children ≤12"},
+    {id:"q21", row:21, type:"num", sw:"Huduma za afya ulizofanya?", en:"Health services conducted"},
+    {id:"q22", row:22, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q23", row:23, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q24", row:24, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q25", row:25, type:"num", sub:true, sw:"Watoto (12 na chini)", en:"Children ≤12"},
+    {id:"q26", row:26, type:"num", sw:"Huduma zingine zilizofanywa?", en:"Other services conducted"},
+    {id:"q27", row:27, type:"num", sw:"Umetembelea wagonjwa wangapi?", en:"Patients visited"},
+    {id:"q28", row:28, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q29", row:29, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q30", row:30, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q31", row:31, type:"num", sub:true, sw:"Watoto (12 na chini)", en:"Children ≤12"},
+    {id:"q32", row:32, type:"num", sw:"Wagonjwa wenye magonjwa sugu?", en:"Patients with chronic disease"},
+    {id:"q33", row:33, type:"num", sw:"Wanaochukua mabadiliko ya mtindo wa maisha?", en:"Taking up lifestyle change"},
+    {id:"q34", row:34, type:"text", sw:"Magonjwa ya kawaida uliyokutana nayo?", en:"Common diseases encountered"},
+  ]},
+  {section:"Ubatizo · Baptism", no:3, fields:[
+    {id:"q36", row:36, type:"num", sw:"Umebatiza wangapi mwezi huu?", en:"Baptized this month"},
+    {id:"q37", row:37, type:"num", sw:"Wanaosubiri ubatizo ni wangapi?", en:"Awaiting baptism"},
+  ]},
+  {section:"Uinjilisti wa Hadhara · Public evangelism", no:4, fields:[
+    {id:"q39", row:39, type:"num", sw:"Mahubiri ya hadhara/mikutano uliyofanya?", en:"Public sermons / meetings held"},
+    {id:"q40", row:40, type:"num", sub:true, sw:"Wanaume walioudhuria", en:"Men attended"},
+    {id:"q41", row:41, type:"num", sub:true, sw:"Wanawake walioudhuria", en:"Women attended"},
+    {id:"q42", row:42, type:"num", sub:true, sw:"Vijana (13–19) walioudhuria", en:"Youth 13–19 attended"},
+    {id:"q43", row:43, type:"num", sub:true, sw:"Vijana (20–34) walioudhuria", en:"Youth 20–34 attended"},
+    {id:"q44", row:44, type:"num", sub:true, sw:"Watoto walioudhuria", en:"Children attended"},
+    {id:"q45", row:45, type:"num", sw:"Wanaume walioudhuria Sabato za wageni", en:"Men — visitors' Sabbath"},
+    {id:"q46", row:46, type:"num", sub:true, sw:"Wanawake", en:"Women — visitors' Sabbath"},
+    {id:"q47", row:47, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19 — visitors' Sabbath"},
+    {id:"q48", row:48, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34 — visitors' Sabbath"},
+    {id:"q49", row:49, type:"num", sub:true, sw:"Watoto", en:"Children — visitors' Sabbath"},
+    {id:"q50", row:50, type:"num", sw:"Waliojitolea kwa Yesu — Wanaume", en:"Committed to Jesus — Men"},
+    {id:"q51", row:51, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q52", row:52, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q53", row:53, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q54", row:54, type:"num", sub:true, sw:"Watoto", en:"Children"},
+  ]},
+  {section:"Masomo ya Biblia · Bible studies", no:5, fields:[
+    {id:"q55", row:55, type:"num", sw:"Madarasa endelevu ya Biblia — Wanaume", en:"Ongoing Bible classes — Men"},
+    {id:"q56", row:56, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q57", row:57, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q58", row:58, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q59", row:59, type:"num", sub:true, sw:"Watoto", en:"Children"},
+    {id:"q60", row:60, type:"num", sw:"Madarasa mafupi ya Biblia — Wanaume", en:"Short Bible classes — Men"},
+    {id:"q61", row:61, type:"num", sub:true, sw:"Wanawake", en:"Women"},
+    {id:"q62", row:62, type:"num", sub:true, sw:"Vijana (13–19)", en:"Youth 13–19"},
+    {id:"q63", row:63, type:"num", sub:true, sw:"Vijana (20–34)", en:"Youth 20–34"},
+    {id:"q64", row:64, type:"num", sub:true, sw:"Watoto", en:"Children"},
+  ]},
+  {section:"Shule na Magereza · Schools &amp; prisons", no:6, fields:[
+    {id:"q67", row:67, type:"num", sw:"Wanafunzi shule ya msingi — Wavulana", en:"Primary school — Boys"},
+    {id:"q68", row:68, type:"num", sub:true, sw:"Wasichana", en:"Girls"},
+    {id:"q69", row:69, type:"num", sub:true, sw:"Walimu / Wafanyakazi", en:"Teachers / staff"},
+    {id:"q70", row:70, type:"num", sw:"Wanafunzi shule ya sekondari — Wavulana", en:"Secondary school — Boys"},
+    {id:"q71", row:71, type:"num", sub:true, sw:"Wasichana", en:"Girls"},
+    {id:"q72", row:72, type:"num", sub:true, sw:"Walimu / Wafanyakazi", en:"Teachers / staff"},
+    {id:"q73", row:73, type:"num", sw:"Wanafunzi chuo kikuu?", en:"University students"},
+    {id:"q74", row:74, type:"num", sw:"Wanafunzi shule nyingine?", en:"Other school students"},
+    {id:"q75", row:75, type:"num", sub:true, sw:"Walimu / Wafanyakazi", en:"Teachers / staff reached"},
+    {id:"q76", row:76, type:"num", sw:"Watu unaowafundisha magerezani?", en:"People taught in prisons"},
+  ]},
+  {section:"Vyombo vya Habari na Machapisho · Media &amp; literature", no:7, fields:[
+    {id:"q78", row:78, type:"media", sw:"Vyombo vya habari ulivyotumia?", en:"Media channels used"},
+    {id:"q79", row:79, type:"num", sw:"Vijikaratasi (tracts) ulivyogawa?", en:"Tracts distributed"},
+    {id:"q80", row:80, type:"num", sw:"Vitabu ulivyogawa?", en:"Books distributed"},
+    {id:"q81", row:81, type:"num", sw:"Biblia ulizogawa?", en:"Bibles distributed"},
+    {id:"q82", row:82, type:"guide", sw:"Somo unalotumia kujifunza Biblia?", en:"Study guide used"},
+    {id:"q83", row:83, type:"text", sw:"Taarifa nyingine", en:"Other information"},
+  ]},
+];
+
+// flat ordered field list (defines Sheet column order)
+const FIELDS = SCHEMA.flatMap(s=>s.fields);
+const NUM_FIELDS = FIELDS.filter(f=>f.type==="num").map(f=>f.id);
+
+/* ================================================================
+   BUILD THE FORM
+   ================================================================ */
+function opt(v,label){ return `<option value="${v}">${label||v}</option>`; }
+
+function fieldHTML(f){
+  const lbl = `<label class="${f.req?'req':''}">${f.sw}${f.en?`<small>${f.en}</small>`:''}</label>`;
+  let ctrl="";
+  if(f.type==="num")      ctrl=`<input type="number" min="0" step="1" inputmode="numeric" name="${f.id}" placeholder="0">`;
+  else if(f.type==="text")ctrl=`<textarea name="${f.id}"></textarea>`;
+  else if(f.type==="date")ctrl=`<input type="date" name="${f.id}">`;
+  else if(f.type==="region")
+    ctrl=`<select name="region"><option value="">— Chagua mkoa · select —</option>${REGIONS.map(r=>opt(r)).join("")}</select>`;
+  else if(f.type==="missionary")
+    ctrl=`<select name="missionary"><option value="">— Chagua jina · select —</option>${MISSIONARIES.map(m=>opt(m[0])).join("")}</select>`;
+  else if(f.type==="guide")
+    ctrl=`<select name="${f.id}"><option value="">—</option>${GUIDE_OPTS.map(g=>opt(g)).join("")}</select>`;
+  else if(f.type==="media")
+    ctrl=`<div class="checks">${MEDIA_OPTS.map(m=>`<label><input type="checkbox" name="${f.id}" value="${m}">${m}</label>`).join("")}</div>`;
+  return `<div class="field ${f.sub?'sub':''}">${lbl}${ctrl}</div>`;
+}
+
+function buildForm(){
+  const host = document.getElementById("formSections");
+  host.innerHTML = SCHEMA.map((s,i)=>`
+    <details class="section" ${i===0?'open':''}>
+      <summary>
+        <span class="no">${s.no}</span>
+        <span class="lbl">${s.section}</span>
+        <span class="chev">›</span>
+      </summary>
+      <div class="body">${s.fields.map(fieldHTML).join("")}</div>
+    </details>`).join("");
+
+  // auto-fill region from missionary
+  const mSel = host.querySelector('select[name="missionary"]');
+  const rSel = host.querySelector('select[name="region"]');
+  mSel.addEventListener("change",()=>{
+    const found = MISSIONARIES.find(m=>m[0]===mSel.value);
+    if(found && found[1] && !rSel.value) rSel.value=found[1];
+  });
+
+  host.addEventListener("input",updateProgress);
+  host.addEventListener("change",updateProgress);
+  // default date = today
+  host.querySelector('input[name="date"]').value = new Date().toISOString().slice(0,10);
+
+  buildPhotoSection(host);
+}
+
+/* ---------- Photos: up to 3, resized in-browser before upload ---------- */
+const MAX_PHOTOS = 3;
+const PHOTO_MAX_SIDE = 1600;   // longest edge in px
+const PHOTO_QUALITY  = 0.85;   // JPEG quality
+let PHOTOS = [];               // array of resized dataURL strings
+
+function buildPhotoSection(host){
+  const sec = document.createElement("details");
+  sec.className = "section";
+  sec.innerHTML = `
+    <summary>
+      <span class="no">📷</span>
+      <span class="lbl">Picha · Photos <small>Hiari — hadi picha 3 (baptism, mikutano, huduma). Optional — up to 3.</small></span>
+      <span class="chev">›</span>
+    </summary>
+    <div class="body">
+      <label class="photo-drop" id="photoDrop">
+        <b>Bonyeza kuongeza picha · Tap to add a photo</b>
+        Piga picha au chagua kutoka kwenye simu · Take a photo or choose from gallery
+        <input type="file" accept="image/*" id="photoInput" hidden>
+      </label>
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>`;
+  host.appendChild(sec);
+  document.getElementById("photoInput").addEventListener("change", onPhotoPick);
+}
+
+function resizePhoto(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width, h=img.height;
+        if(w>=h && w>PHOTO_MAX_SIDE){ h=Math.round(h*PHOTO_MAX_SIDE/w); w=PHOTO_MAX_SIDE; }
+        else if(h>w && h>PHOTO_MAX_SIDE){ w=Math.round(w*PHOTO_MAX_SIDE/h); h=PHOTO_MAX_SIDE; }
+        const c=document.createElement("canvas");
+        c.width=w; c.height=h;
+        c.getContext("2d").drawImage(img,0,0,w,h);
+        resolve(c.toDataURL("image/jpeg",PHOTO_QUALITY));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function onPhotoPick(ev){
+  const file=ev.target.files[0];
+  ev.target.value=""; // allow re-picking same file
+  if(!file) return;
+  if(PHOTOS.length>=MAX_PHOTOS){ alert("Picha 3 tu zinaruhusiwa · Maximum 3 photos"); return; }
+  const grid=document.getElementById("photoGrid");
+  const cell=document.createElement("div");
+  cell.className="thumb";
+  cell.innerHTML=`<div class="busy">Inapunguza…</div>`;
+  grid.appendChild(cell);
+  try{
+    const dataUrl=await resizePhoto(file);
+    const idx=PHOTOS.push(dataUrl)-1;
+    cell.innerHTML=`<img src="${dataUrl}"><button type="button" title="Ondoa">✕</button>`;
+    cell.querySelector("button").addEventListener("click",()=>{
+      PHOTOS[idx]=null;                 // mark removed (keep indices stable)
+      cell.remove();
+    });
+  }catch(err){
+    cell.remove();
+    alert("Imeshindikana kusoma picha · Could not read that image");
+  }
+}
+
+function clearPhotos(){
+  PHOTOS=[];
+  const g=document.getElementById("photoGrid");
+  if(g) g.innerHTML="";
+}
+
+function updateProgress(){
+  const inputs = FIELDS.filter(f=>f.type!=="media");
+  let filled=0;
+  inputs.forEach(f=>{
+    const el=document.querySelector(`#reportForm [name="${f.id}"]`);
+    if(el && String(el.value||"").trim()!=="") filled++;
+  });
+  // media counts if any box checked
+  const mediaChecked=document.querySelectorAll('#reportForm input[name="q78"]:checked').length>0;
+  if(mediaChecked) filled++;
+  const total=FIELDS.length;
+  const pct=Math.round(filled/total*100);
+  document.getElementById("progBar").style.width=pct+"%";
+  document.getElementById("progText").textContent=`${filled} / ${total}`;
+}
+
+/* ================================================================
+   SUBMIT
+   ================================================================ */
+function collect(){
+  const form=document.getElementById("reportForm");
+  const data={ _ts:new Date().toISOString() };
+  FIELDS.forEach(f=>{
+    if(f.type==="media"){
+      const vals=[...form.querySelectorAll('input[name="q78"]:checked')].map(c=>c.value);
+      data[f.id]=vals.join(", ");
+    }else{
+      const el=form.querySelector(`[name="${f.id}"]`);
+      let v=el?el.value:"";
+      if(f.type==="num") v=(v===""?"":Number(v));
+      data[f.id]=v;
+    }
+  });
+  return data;
+}
+
+async function submitReport(e){
+  e.preventDefault();
+  const msg=document.getElementById("formMsg");
+  const btn=document.getElementById("submitBtn");
+  msg.className="msg";
+
+  const d=collect();
+  if(!d.region || !d.missionary || !d.date){
+    msg.className="msg err show";
+    msg.textContent="Tafadhali jaza Mkoa, Jina, na Tarehe. Please fill region, name and date.";
+    return;
+  }
+  const url=scriptUrl();
+  if(!url){
+    msg.className="msg err show";
+    msg.innerHTML="Haijaunganishwa na Google Sheet. Not connected — set the Web App URL in Admin → Settings.";
+    return;
+  }
+
+  btn.disabled=true; btn.textContent="Inatuma… · Sending…";
+  const photos = PHOTOS.filter(Boolean);   // drop removed slots
+  try{
+    const res=await fetch(url,{
+      method:"POST",
+      // text/plain avoids a CORS preflight; Apps Script parses the JSON body
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"submit", payload:d, photos:photos})
+    });
+    const out=await res.json();
+    if(out && out.ok){
+      msg.className="msg ok show";
+      msg.textContent="✓ Ripoti imetumwa. Asante! Report saved successfully.";
+      document.getElementById("reportForm").reset();
+      clearPhotos();
+      document.querySelector('#reportForm input[name="date"]').value=new Date().toISOString().slice(0,10);
+      updateProgress();
+      window.scrollTo({top:0,behavior:"smooth"});
+    }else{
+      throw new Error(out && out.error ? out.error : "Unknown error");
+    }
+  }catch(err){
+    msg.className="msg err show";
+    msg.textContent="✗ Imeshindikana kutuma: "+err.message+". Could not save — check the connection and try again.";
+  }finally{
+    btn.disabled=false; btn.textContent="Tuma Ripoti · Submit report";
+  }
+}
+
+/* ================================================================
+   MODE TOGGLE
+   ================================================================ */
+let mode="form";
+function setMode(m){
+  mode=m;
+  document.getElementById("formView").classList.toggle("active",m==="form");
+  document.getElementById("adminView").classList.toggle("active",m==="admin");
+  document.getElementById("modeToggle").textContent = m==="form" ? "Admin" : "← Fomu · Form";
+  window.scrollTo(0,0);
+}
+document.getElementById("modeToggle").addEventListener("click",()=>setMode(mode==="form"?"admin":"form"));
+
+/* ================================================================
+   ADMIN
+   ================================================================ */
+let ALL_ROWS=[];         // fetched submissions
+let regionChart=null;
+
+document.getElementById("adminEnter").addEventListener("click",enterAdmin);
+document.getElementById("adminPass").addEventListener("keydown",e=>{if(e.key==="Enter")enterAdmin();});
+
+function enterAdmin(){
+  const gm=document.getElementById("gateMsg");
+  if(document.getElementById("adminPass").value !== CONFIG.ADMIN_PASSCODE){
+    gm.className="msg err show"; gm.textContent="Nenosiri si sahihi. Wrong passcode.";
+    return;
+  }
+  document.getElementById("adminGate").style.display="none";
+  document.getElementById("adminDash").style.display="block";
+  document.getElementById("scriptUrl").value = scriptUrl();
+  loadData();
+}
+
+document.getElementById("settingsBtn").addEventListener("click",()=>{
+  const p=document.getElementById("settingsPanel");
+  p.style.display=p.style.display==="none"?"block":"none";
+});
+document.getElementById("saveUrl").addEventListener("click",()=>{
+  const u=document.getElementById("scriptUrl").value.trim();
+  store.set("soe_url",u);
+  document.getElementById("urlSaved").textContent="✓ Saved";
+  checkCfgBanner();
+  setTimeout(()=>document.getElementById("urlSaved").textContent="",2500);
+});
+document.getElementById("refreshBtn").addEventListener("click",loadData);
+document.getElementById("csvBtn").addEventListener("click",exportCSV);
+document.getElementById("fMonth").addEventListener("change",render);
+document.getElementById("fRegion").addEventListener("change",render);
+
+async function loadData(){
+  const url=scriptUrl();
+  const loading=document.getElementById("dashLoading");
+  const empty=document.getElementById("dashEmpty");
+  const content=document.getElementById("dashContent");
+  loading.style.display="block"; empty.style.display="none"; content.style.display="none";
+
+  if(!url){
+    loading.style.display="none";
+    empty.style.display="block";
+    empty.innerHTML="Weka Web App URL kwenye Settings kwanza.<br>Set the Web App URL in Settings first.";
+    return;
+  }
+  try{
+    const res=await fetch(url+"?action=read&pass="+encodeURIComponent(CONFIG.ADMIN_PASSCODE));
+    const out=await res.json();
+    ALL_ROWS = (out && out.rows) ? out.rows : [];
+    loading.style.display="none";
+    if(!ALL_ROWS.length){ empty.style.display="block"; return; }
+    content.style.display="block";
+    buildFilters();
+    render();
+  }catch(err){
+    loading.style.display="none";
+    empty.style.display="block";
+    empty.textContent="Imeshindikana kupakia: "+err.message;
+  }
+}
+
+function monthKey(iso){
+  // derive YYYY-MM from the submission date field (d.date) else timestamp
+  if(!iso) return "";
+  const s=String(iso);
+  const m=s.match(/^(\d{4})-(\d{2})/);
+  return m?`${m[1]}-${m[2]}`:"";
+}
+function monthLabel(k){
+  if(!k) return "—";
+  const [y,mo]=k.split("-");
+  const names=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${names[+mo-1]} ${y}`;
+}
+
+function buildFilters(){
+  const months=[...new Set(ALL_ROWS.map(r=>monthKey(r.date||r._ts)).filter(Boolean))].sort().reverse();
+  const fM=document.getElementById("fMonth");
+  fM.innerHTML=`<option value="">Miezi yote · All months</option>`+months.map(m=>opt(m,monthLabel(m))).join("");
+  const regs=[...new Set(ALL_ROWS.map(r=>r.region).filter(Boolean))].sort();
+  const fR=document.getElementById("fRegion");
+  fR.innerHTML=`<option value="">Mikoa yote · All regions</option>`+regs.map(r=>opt(r)).join("");
+}
+
+function filtered(){
+  const m=document.getElementById("fMonth").value;
+  const r=document.getElementById("fRegion").value;
+  return ALL_ROWS.filter(row=>{
+    if(m && monthKey(row.date||row._ts)!==m) return false;
+    if(r && row.region!==r) return false;
+    return true;
+  });
+}
+
+const N = v => { const n=Number(v); return isNaN(n)?0:n; };
+function sum(rows,id){ return rows.reduce((a,r)=>a+N(r[id]),0); }
+
+function render(){
+  const rows=filtered();
+  renderKPIs(rows);
+  renderRegionTable(rows);
+  renderRegionChart(rows);
+  renderRawTable(rows);
+  document.getElementById("rowCount").textContent=rows.length;
+}
+
+function renderKPIs(rows){
+  const kpis=[
+    {n:rows.length, l:"Ripoti · Reports", gold:true},
+    {n:sum(rows,"q5"), l:"Washiriki · Participants"},
+    {n:sum(rows,"q6"), l:"Walioongezeka · Added"},
+    {n:sum(rows,"q36"), l:"Wamebatizwa · Baptized"},
+    {n:sum(rows,"q37"), l:"Wanaosubiri · Awaiting baptism"},
+    {n:sum(rows,"q10")+sum(rows,"q15"), l:"Masomo ya afya · Health lessons"},
+    {n:sum(rows,"q67")+sum(rows,"q68")+sum(rows,"q70")+sum(rows,"q71")+sum(rows,"q73")+sum(rows,"q74"),
+      l:"Wanafunzi · Students reached"},
+    {n:sum(rows,"q79"), l:"Vijikaratasi · Tracts"},
+    {n:sum(rows,"q80"), l:"Vitabu · Books"},
+    {n:sum(rows,"q81"), l:"Biblia · Bibles"},
+  ];
+  document.getElementById("kpis").innerHTML=kpis.map(k=>
+    `<div class="kpi ${k.gold?'gold':''}"><div class="n">${k.n.toLocaleString()}</div><div class="l">${k.l}</div></div>`
+  ).join("");
+}
+
+// region summary table — key headline metrics per region
+const SUMMARY_METRICS=[
+  {id:"q5", l:"Washiriki · Participants"},
+  {id:"q6", l:"Walioongezeka · Added"},
+  {id:"q36", l:"Wamebatizwa · Baptized"},
+  {id:"q37", l:"Wanaosubiri · Awaiting"},
+  {id:"q39", l:"Mikutano · Meetings"},
+  {id:"q76", l:"Magereza · Prison"},
+  {id:"q79", l:"Vijikaratasi · Tracts"},
+  {id:"q80", l:"Vitabu · Books"},
+  {id:"q81", l:"Biblia · Bibles"},
+];
+function renderRegionTable(rows){
+  const regs=[...new Set(rows.map(r=>r.region).filter(Boolean))].sort();
+  let html=`<thead><tr><th>Kipimo · Metric</th>${regs.map(r=>`<th>${r}</th>`).join("")}<th>Jumla · Total</th></tr></thead><tbody>`;
+  SUMMARY_METRICS.forEach(m=>{
+    let tot=0;
+    html+=`<tr><td>${m.l}</td>`;
+    regs.forEach(r=>{
+      const v=sum(rows.filter(x=>x.region===r),m.id); tot+=v;
+      html+=`<td>${v?v.toLocaleString():"–"}</td>`;
+    });
+    html+=`<td>${tot?tot.toLocaleString():"–"}</td></tr>`;
+  });
+  html+=`</tbody><tfoot><tr><td>Ripoti · Reports</td>`;
+  regs.forEach(r=>{ html+=`<td>${rows.filter(x=>x.region===r).length}</td>`; });
+  html+=`<td>${rows.length}</td></tr></tfoot>`;
+  document.getElementById("regionTable").innerHTML=html;
+}
+
+function renderRegionChart(rows){
+  const regs=[...new Set(rows.map(r=>r.region).filter(Boolean))].sort();
+  const participants=regs.map(r=>sum(rows.filter(x=>x.region===r),"q5"));
+  const baptized=regs.map(r=>sum(rows.filter(x=>x.region===r),"q36"));
+  if(regionChart) regionChart.destroy();
+  regionChart=new Chart(document.getElementById("regionChart"),{
+    type:"bar",
+    data:{labels:regs,datasets:[
+      {label:"Washiriki · Participants",data:participants,backgroundColor:"#163A2B"},
+      {label:"Wamebatizwa · Baptized",data:baptized,backgroundColor:"#C29B3B"}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"}},
+      scales:{y:{beginAtZero:true,grid:{color:"#e6eae4"}}}}
+  });
+}
+
+// raw submissions table — a readable subset of columns
+const RAW_COLS=[
+  {id:"date",l:"Tarehe"},{id:"region",l:"Mkoa"},{id:"missionary",l:"Jina"},
+  {id:"q5",l:"Washiriki"},{id:"q6",l:"Ongezeko"},{id:"q36",l:"Ubatizo"},
+  {id:"q37",l:"Wanaosubiri"},{id:"q39",l:"Mikutano"},{id:"q79",l:"Tracts"},
+  {id:"q80",l:"Vitabu"},{id:"q81",l:"Biblia"},{id:"q82",l:"Somo"},{id:"_photos",l:"Picha"}
+];
+function renderRawTable(rows){
+  const sorted=[...rows].sort((a,b)=>String(b.date||b._ts).localeCompare(String(a.date||a._ts)));
+  let html=`<thead><tr>${RAW_COLS.map(c=>`<th>${c.l}</th>`).join("")}</tr></thead><tbody>`;
+  if(!sorted.length){
+    html+=`<tr><td colspan="${RAW_COLS.length}" style="text-align:center;color:var(--muted)">Hakuna · none</td></tr>`;
+  }
+  sorted.forEach(r=>{
+    html+="<tr>"+RAW_COLS.map(c=>{
+      if(c.id==="_photos"){
+        const links=["photo1","photo2","photo3"].map(k=>r[k]).filter(v=>v&&String(v).startsWith("http"));
+        if(!links.length) return `<td>–</td>`;
+        return `<td>`+links.map((u,i)=>`<a href="${u}" target="_blank" rel="noopener">${i+1}</a>`).join(" · ")+`</td>`;
+      }
+      let v=r[c.id]; if(v===undefined||v===null||v==="") v="–";
+      return `<td>${v}</td>`;
+    }).join("")+"</tr>";
+  });
+  html+="</tbody>";
+  document.getElementById("rawTable").innerHTML=html;
+}
+
+/* CSV export — full field set, matching Sheet columns */
+function exportCSV(){
+  const rows=filtered();
+  if(!rows.length){ alert("Hakuna data · no data to export"); return; }
+  const cols=["_ts","date","region","missionary",
+    ...FIELDS.filter(f=>!["date","region","missionary"].includes(f.id)).map(f=>f.id),
+    "photo1","photo2","photo3"];
+  const head=cols.join(",");
+  const esc=v=>{ v=(v===undefined||v===null)?"":String(v); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const body=rows.map(r=>cols.map(c=>esc(r[c])).join(",")).join("\n");
+  const blob=new Blob(["\ufeff"+head+"\n"+body],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="SOE_reports_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+function checkCfgBanner(){
+  document.getElementById("cfgBanner").classList.toggle("show", !scriptUrl());
+}
+buildForm();
+updateProgress();
+checkCfgBanner();
+document.getElementById("reportForm").addEventListener("submit",submitReport);
+</script>
+</body>
+</html>
